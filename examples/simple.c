@@ -2,85 +2,82 @@
 #include <stdio.h>
 #include "../ringbuffer.h"
 
-int main(void) {
-  int i, cnt;
-  char buf;
-  char buf_arr[50];
-  
-  /* Create and initialize ring buffer */
-  ring_buffer_t ring_buffer;
-  ring_buffer_init(&ring_buffer);
-  
-  /* Add elements to buffer; one at a time */
-  for(i = 0; i < 100; i++) {
-    ring_buffer_queue(&ring_buffer, i);
-  }
+#define TEST_BUFFER_SIZE 256
 
-  /* Verify size */
-  assert(ring_buffer_num_items(&ring_buffer) == 100);
+static int test_buffer[TEST_BUFFER_SIZE];
 
-  /* Peek third element */
-  cnt = ring_buffer_peek(&ring_buffer, &buf, 3);
-  /* Assert byte returned */
-  assert(cnt == 1);
-  /* Assert contents */
-  assert(buf == 3);
+typedef int test_t;
 
-  /* Dequeue all elements */
-  for(cnt = 0; ring_buffer_dequeue(&ring_buffer, &buf) > 0; cnt++) {
-    /* Do something with buf... */
-    assert(buf == cnt);
-    printf("Read: %d\n", buf);
-  }
-  printf("\n===============\n");
+int main (void)
+{
+    int  cnt;
+    test_t buf;
 
-  /* Add array */
-  ring_buffer_queue_arr(&ring_buffer, "Hello, Ring Buffer!", 20);
+    /* Create and initialize ring buffer */
+    ring_buffer_t ring_buffer;
+    ring_buffer_init (&ring_buffer,
+                      test_buffer,
+                      sizeof(test_buffer[0]),
+                      sizeof(test_buffer)/sizeof(test_buffer[0]));
 
-  /* Is buffer empty? */
-  assert(!ring_buffer_is_empty(&ring_buffer));
+    /* Add elements to buffer; one at a time */
+    for (int e = 0; e < TEST_BUFFER_SIZE - 1; e++) {
+        ring_buffer_queue (&ring_buffer, (void*) &e);
+    }
+    /* Verify size */
+    assert(ring_buffer_num_items(&ring_buffer) == TEST_BUFFER_SIZE - 1);
 
-  /* Dequeue all elements */
-  while(ring_buffer_dequeue(&ring_buffer, &buf) > 0) {
-    /* Print contents */
-    printf("Read: %c\n", buf);
-  }
-  
-  /* Add new array */
-  ring_buffer_queue_arr(&ring_buffer, "Hello again, Ring Buffer!", 26);
-  
-  /* Dequeue array in two parts */
-  printf("Read:\n");
-  cnt = ring_buffer_dequeue_arr(&ring_buffer, buf_arr, 13);
-  printf("%d\n", cnt);
-  assert(cnt == 13);
-  /* Add \0 termination before printing */
-  buf_arr[13] = '\0';
-  printf("%s\n", buf_arr);
-  /* Dequeue remaining */
-  cnt = ring_buffer_dequeue_arr(&ring_buffer, buf_arr, 13);
-  assert(cnt == 13);
-  printf("%s", buf_arr);  
-  
+    /* Peek third element */
+    const test_t * peek_data = (const test_t*)ring_buffer_peek (&ring_buffer, 3);
+    /* Assert byte returned */
+    assert(peek_data != NULL);
+    /* Assert contents */
+    assert(*peek_data == 3);
 
-  printf("\n===============\n");
+    /* Dequeue all elements */
+    for (cnt = 0; ring_buffer_dequeue (&ring_buffer, &buf) > 0; cnt++){
+        /* Do something with buf... */
+        assert(buf == cnt);
+        printf ("Read: %d\n", buf);
+    }
+    printf ("\n===============\n");
 
-  /* Overfill buffer */
-  for(i = 0; i < 1000; i++) {
-    ring_buffer_queue(&ring_buffer, (i % 127));
-  }
-  
-  /* Is buffer full? */
-  if(ring_buffer_is_full(&ring_buffer)) {
-    cnt = ring_buffer_num_items(&ring_buffer);
-    printf("Buffer is full and contains %d bytes\n", cnt);
-  }
-  
-  /* Dequeue all elements */
-  while(ring_buffer_dequeue(&ring_buffer, &buf) > 0) {
-    /* Print contents */
-    printf("Read: 0x%02x\n", buf);
-  }
-  
-  return 0;
+    /* Add array */
+    test_t test_buf_arr[20];
+    ring_buffer_queue_arr (&ring_buffer, test_buf_arr, 20);
+
+    /* Is buffer empty? */
+    assert(!ring_buffer_is_empty (&ring_buffer));
+
+    /* Dequeue all elements */
+    while (ring_buffer_dequeue (&ring_buffer, &buf) > 0)
+    {
+        /* Print contents */
+        printf ("Read: %d\n", buf);
+    }
+    ring_buffer_queue_arr (&ring_buffer, test_buf_arr, 20);
+    assert(!ring_buffer_is_empty (&ring_buffer));
+    ring_buffer_dequeue_arr(&ring_buffer, test_buf_arr, 20);
+    assert(ring_buffer_is_empty (&ring_buffer));
+
+    printf ("\n===============\n");
+
+    /* Overfill buffer */
+    for (int i = 0; i < 1000; i++){
+        ring_buffer_queue (&ring_buffer, &i);
+    }
+
+    /* Is buffer full? */
+    if (ring_buffer_is_full (&ring_buffer)) {
+        cnt = ring_buffer_num_items (&ring_buffer);
+        printf ("Buffer is full and contains %d bytes\n", cnt);
+    }
+
+    /* Dequeue all elements */
+    while (ring_buffer_dequeue (&ring_buffer, &buf) > 0)
+    {
+        /* Print contents */
+        printf ("Read: %d\n", buf);
+    }
+    return 0;
 }
