@@ -71,8 +71,7 @@ const void* ring_buffer_peek (ring_buffer_t *buffer, size_t index)
     }
 
     /* Add index to pointer */
-    size_t data_index = ((buffer->tail_index + index)
-                    & RING_BUFFER_MASK);
+    size_t data_index = ((buffer->tail_index + index) & RING_BUFFER_MASK);
     return (const void*) ((uint8_t*) buffer->element_buffer + data_index * buffer->element_size);
 }
 
